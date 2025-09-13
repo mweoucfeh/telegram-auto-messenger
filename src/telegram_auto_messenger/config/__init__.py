@@ -61,6 +61,8 @@ class AppConfig:
     monitors: List[MonitorConfig] = field(default_factory=list)
     log_enabled: bool = True  # Simple on/off logging control
     log_level: str = "INFO"
+    log_to_file: bool = True  # Enable/disable file logging
+    log_dir: str = "logs"  # Directory for log files
     hot_reload: bool = True
     hot_reload_interval: int = 30
     safety: SafetyConfig = field(default_factory=SafetyConfig)
@@ -131,6 +133,8 @@ class ConfigManager:
             'app': {
                 'log_enabled': True,
                 'log_level': 'INFO',
+                'log_to_file': True,
+                'log_dir': 'logs',
                 'hot_reload': True,
                 'hot_reload_interval': 30,
                 'safety': {

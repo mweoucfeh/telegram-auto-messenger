@@ -46,7 +46,7 @@ class MessageMonitor:
             return True
             
         except Exception as e:
-            self.logger.error(f"Failed to start monitoring: {e}")
+            self.logger.exception(f"Failed to start monitoring: {e}")
             return False
             
     async def stop_monitoring(self):
@@ -60,7 +60,7 @@ class MessageMonitor:
                 self.is_monitoring = False
                 self.logger.info(f"Stopped monitoring {self.config.target}")
             except Exception as e:
-                self.logger.error(f"Error stopping monitoring: {e}")
+                self.logger.exception(f"Error stopping monitoring: {e}")
                 
     async def _handle_new_message(self, event):
         """Handle new message events."""
@@ -92,7 +92,7 @@ class MessageMonitor:
                 self.processed_messages -= set(old_messages)
                 
         except Exception as e:
-            self.logger.error(f"Error handling new message: {e}")
+            self.logger.exception(f"Error handling new message: {e}")
             
     def _matches_keywords(self, text: str) -> bool:
         """Check if message text matches configured keywords."""
@@ -139,7 +139,7 @@ class MessageMonitor:
                 self.logger.error("Failed to send auto-reply")
                 
         except Exception as e:
-            self.logger.error(f"Error sending auto-reply: {e}")
+            self.logger.exception(f"Error sending auto-reply: {e}")
 
 
 class MonitorManager:
@@ -173,7 +173,7 @@ class MonitorManager:
             return success
             
         except Exception as e:
-            self.logger.error(f"Failed to add monitor {config.name}: {e}")
+            self.logger.exception(f"Failed to add monitor {config.name}: {e}")
             return False
             
     async def remove_monitor(self, name: str):

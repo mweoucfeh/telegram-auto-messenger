@@ -52,7 +52,7 @@ class TelegramAccount:
             return True
             
         except Exception as e:
-            self.logger.error(f"Failed to connect: {e}")
+            self.logger.exception(f"Failed to connect: {e}")
             self.is_connected = False
             return False
             
@@ -106,7 +106,7 @@ class TelegramAccount:
             self._update_rate_tracking()
             return True
         except Exception as e:
-            self.logger.error(f"Failed to send message to {target}: {e}")
+            self.logger.exception(f"Failed to send message to {target}: {e}")
             return False
     
     def _check_rate_limit(self) -> bool:
@@ -155,7 +155,7 @@ class TelegramAccount:
             self.logger.info(f"Message {message_id} deleted from {target}")
             return True
         except Exception as e:
-            self.logger.error(f"Failed to delete message {message_id}: {e}")
+            self.logger.exception(f"Failed to delete message {message_id}: {e}")
             return False
 
 

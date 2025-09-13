@@ -81,18 +81,54 @@ async def test_database_manager():
 
 
 def test_logger_setup():
-    """Test logger setup."""
+    """Test enhanced logger setup."""
     # Test basic setup
     setup_logging(True, 'INFO')
     logger = get_logger('test')
     assert logger._current_level <= 1  # INFO level
     
     # Test debug setup
-    setup_logging(True, 'DEBUG')
+    setup_logging(True, 'DEBUG', True, 'test_logs')
     logger = get_logger('test_debug')
     assert logger._current_level <= 0  # DEBUG level
+    assert logger.log_to_file is True
+    assert logger.log_dir == Path('test_logs')
     
     # Test disabled logging
     setup_logging(False, 'INFO')
     logger = get_logger('test_disabled')
     assert logger.enabled is False
+    
+    # Test file logging disabled
+    setup_logging(True, 'INFO', False)
+    logger = get_logger('test_no_file')
+    assert logger.log_to_file is False
+
+
+def test_enhanced_logging_methods():
+    """Test enhanced logging methods with exception support."""
+    import tempfile
+    import os
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Setup logger with temp directory
+        setup_logging(True, 'DEBUG', True, tmpdir)
+        logger = get_logger('test_enhanced')
+        
+        # Test basic logging
+        logger.info("Test info message")
+        logger.warning("Test warning message")
+        logger.error("Test error message")
+        logger.debug("Test debug message")
+        logger.critical("Test critical message")
+        
+        # Test exception logging
+        try:
+            raise ValueError("Test exception")
+        except ValueError:
+            logger.exception("Test exception occurred")
+        
+        # Verify log files were created
+        log_files = os.listdir(tmpdir)
+        assert any('telegram_auto_messenger.log' in f for f in log_files)
+        assert any('errors.log' in f for f in log_files)
