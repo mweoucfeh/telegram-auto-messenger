@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  telegram-auto-messenger:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: telegram-auto-messenger
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./sessions:/app/sessions
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - telegram-net
+    # Uncomment to expose port for future web interface
+    # ports:
+    #   - "8080:8080"
+
+networks:
+  telegram-net:
+    driver: bridge
+
+volumes:
+  telegram-data:
+  telegram-sessions:

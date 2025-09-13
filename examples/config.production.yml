@@ -1,0 +1,36 @@
+# Production configuration example
+app:
+  database_path: '/app/data/telegram_auto_messenger.db'
+  log_level: 'INFO'
+  hot_reload: true
+  hot_reload_interval: 60
+
+accounts:
+  - api_id: ${TELEGRAM_API_ID_1}
+    api_hash: '${TELEGRAM_API_HASH_1}'
+    phone: '${TELEGRAM_PHONE_1}'
+    session_name: 'production_account_1'
+    enabled: true
+
+schedules:
+  - name: 'daily_report'
+    target: '@company_updates'
+    message: '📊 Daily report: All systems operational.'
+    interval: 86400
+    enabled: true
+    auto_delete: false
+    
+  - name: 'maintenance_reminder'
+    target: '@tech_team'
+    message: '🔧 Reminder: Weekly maintenance window starts in 1 hour.'
+    interval: 604800  # Weekly
+    enabled: true
+    auto_delete: false
+
+monitors:
+  - name: 'support_monitor'
+    target: '@customer_support'
+    keywords: ['urgent', 'emergency', 'critical']
+    reply_message: '🚨 Your message has been marked as urgent. A support agent will contact you shortly.'
+    enabled: true
+    exact_match: false

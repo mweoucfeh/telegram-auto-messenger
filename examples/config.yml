@@ -1,0 +1,84 @@
+# Application configuration
+app:
+  # Database path for storing logs and data
+  database_path: 'data/telegram_auto_messenger.db'
+  
+  # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  log_level: 'INFO'
+  
+  # Enable hot reload of configuration file
+  hot_reload: true
+  
+  # Hot reload check interval in seconds
+  hot_reload_interval: 30
+
+# Telegram accounts configuration
+accounts:
+  # First account example
+  - api_id: 12345678
+    api_hash: 'your_api_hash_here'
+    phone: '+1234567890'
+    session_name: 'account1'
+    enabled: true
+    
+  # Second account example (disabled)
+  - api_id: 87654321
+    api_hash: 'another_api_hash'
+    phone: '+0987654321'
+    session_name: 'account2'
+    enabled: false
+
+# Scheduled messages configuration
+schedules:
+  # Example: Daily greeting message
+  - name: 'daily_greeting'
+    target: '@your_channel'
+    message: '🌅 Good morning! Have a great day!'
+    interval: 86400  # 24 hours in seconds
+    enabled: true
+    auto_delete: false
+    delete_after: 60
+    
+  # Example: Hourly status update
+  - name: 'status_update'
+    target: '@status_channel'
+    message: '🤖 Bot is running smoothly at {timestamp}'
+    interval: 3600  # 1 hour in seconds
+    enabled: false
+    auto_delete: true
+    delete_after: 300  # Delete after 5 minutes
+    
+  # Example: Flash message (send and delete quickly)
+  - name: 'flash_message'
+    target: '@temp_channel'
+    message: '⚡ This is a flash message that will be deleted soon!'
+    interval: 1800  # 30 minutes
+    enabled: false
+    auto_delete: true
+    delete_after: 30  # Delete after 30 seconds
+
+# Message monitoring and auto-reply configuration
+monitors:
+  # Example: Help monitor
+  - name: 'help_monitor'
+    target: '@your_group'
+    keywords: ['help', 'support', '帮助']
+    reply_message: '👋 Hello! How can I help you? Please describe your issue in detail.'
+    enabled: true
+    exact_match: false  # Match keywords anywhere in the message
+    
+  # Example: Welcome monitor
+  - name: 'welcome_monitor'
+    target: '@welcome_group'
+    keywords: ['hello', 'hi', 'hey', '你好']
+    reply_message: '🎉 Welcome to our group! Please read the rules before posting.'
+    enabled: false
+    exact_match: false
+    
+  # Example: Exact word match monitor
+  - name: 'ping_monitor'
+    target: '@admin_group'
+    keywords: ['ping', 'status']
+    reply_message: '🏓 Pong! System is operational.'
+    enabled: false
+    exact_match: true  # Only match exact words
