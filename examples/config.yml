@@ -1,7 +1,7 @@
 # Application configuration
 app:
-  # Database path for storing logs and data
-  database_path: 'data/telegram_auto_messenger.db'
+  # Enable/disable console logging output
+  log_enabled: true
   
   # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   log_level: 'INFO'
@@ -11,6 +11,20 @@ app:
   
   # Hot reload check interval in seconds
   hot_reload_interval: 30
+  
+  # Anti-ban safety settings
+  safety:
+    # Minimum delay between messages (seconds) to avoid rate limiting
+    min_message_delay: 5
+    
+    # Maximum messages per hour per account to avoid spam detection
+    max_messages_per_hour: 20
+    
+    # Randomize delays to appear more human-like
+    randomize_delays: true
+    
+    # Additional random delay range (0 to max_random_delay seconds)
+    max_random_delay: 10
 
 # Telegram accounts configuration
 accounts:

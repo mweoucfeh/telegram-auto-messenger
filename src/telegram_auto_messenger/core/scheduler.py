@@ -3,7 +3,6 @@ Message scheduling module for automated message sending.
 """
 
 import asyncio
-import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -11,6 +10,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from ..config import ScheduleConfig
 from .account import AccountManager
+from ..utils.logger import get_logger
 
 
 class ScheduledMessage:
@@ -19,7 +19,7 @@ class ScheduledMessage:
     def __init__(self, config: ScheduleConfig, account_manager: AccountManager):
         self.config = config
         self.account_manager = account_manager
-        self.logger = logging.getLogger(f"{__name__}.{config.name}")
+        self.logger = get_logger(f"ScheduledMessage.{config.name}")
         self.job_id = f"schedule_{config.name}"
         self.last_message_id: Optional[int] = None
         self.last_sent_time: Optional[datetime] = None
@@ -66,7 +66,7 @@ class MessageScheduler:
         self.account_manager = account_manager
         self.scheduler = AsyncIOScheduler()
         self.scheduled_messages: Dict[str, ScheduledMessage] = {}
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger("MessageScheduler")
         self._running = False
         
     async def start(self):

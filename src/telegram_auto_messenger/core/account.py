@@ -3,23 +3,31 @@ Account management module for handling multiple Telegram accounts.
 """
 
 import asyncio
-import logging
+import random
+import time
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from telethon import TelegramClient
 from telethon.errors import SessionPasswordNeededError, PhoneCodeInvalidError
 from telethon.sessions import StringSession
 
-from ..config import AccountConfig
+from ..config import AccountConfig, SafetyConfig
+from ..utils.logger import get_logger
 
 
 class TelegramAccount:
     """Represents a single Telegram account connection."""
     
-    def __init__(self, config: AccountConfig):
+    def __init__(self, config: AccountConfig, safety_config: SafetyConfig):
         self.config = config
+        self.safety_config = safety_config
         self.client: Optional[TelegramClient] = None
-        self.logger = logging.getLogger(f"{__name__}.{config.session_name}")
+        self.logger = get_logger(f"TelegramAccount.{config.session_name}")
         self.is_connected = False
+        
+        # Rate limiting tracking
+        self.message_timestamps: List[datetime] = []
+        self.last_message_time = 0.0
         
     async def connect(self) -> bool:
         """Connect to Telegram account."""
@@ -77,18 +85,65 @@ class TelegramAccount:
             self.logger.info("Disconnected")
             
     async def send_message(self, target: str, message: str) -> bool:
-        """Send a message to target chat."""
+        """Send a message to target chat with safety measures."""
         if not self.is_connected or not self.client:
             self.logger.error("Account not connected")
             return False
+        
+        # Check rate limiting
+        if not self._check_rate_limit():
+            self.logger.warning("Rate limit exceeded, message not sent")
+            return False
             
+        # Apply safety delays
+        await self._apply_safety_delay()
+        
         try:
             await self.client.send_message(target, message)
             self.logger.info(f"Message sent to {target}")
+            
+            # Update tracking
+            self._update_rate_tracking()
             return True
         except Exception as e:
             self.logger.error(f"Failed to send message to {target}: {e}")
             return False
+    
+    def _check_rate_limit(self) -> bool:
+        """Check if sending a message would exceed rate limits."""
+        now = datetime.now()
+        
+        # Clean old timestamps (older than 1 hour)
+        cutoff = now - timedelta(hours=1)
+        self.message_timestamps = [ts for ts in self.message_timestamps if ts > cutoff]
+        
+        # Check if we're under the hourly limit
+        return len(self.message_timestamps) < self.safety_config.max_messages_per_hour
+    
+    async def _apply_safety_delay(self):
+        """Apply safety delays to avoid looking like a bot."""
+        now = time.time()
+        
+        # Calculate minimum delay since last message
+        time_since_last = now - self.last_message_time
+        min_delay = self.safety_config.min_message_delay
+        
+        if time_since_last < min_delay:
+            delay = min_delay - time_since_last
+            
+            # Add randomization if enabled
+            if self.safety_config.randomize_delays:
+                extra_delay = random.uniform(0, self.safety_config.max_random_delay)
+                delay += extra_delay
+                
+            self.logger.debug(f"Applying safety delay: {delay:.2f}s")
+            await asyncio.sleep(delay)
+    
+    def _update_rate_tracking(self):
+        """Update rate limiting tracking after sending a message."""
+        now = datetime.now()
+        self.message_timestamps.append(now)
+        self.last_message_time = time.time()
             
     async def delete_message(self, target: str, message_id: int) -> bool:
         """Delete a message."""
@@ -109,7 +164,15 @@ class AccountManager:
     
     def __init__(self):
         self.accounts: Dict[str, TelegramAccount] = {}
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger("AccountManager")
+        self.safety_config: Optional[SafetyConfig] = None
+        
+    def set_safety_config(self, safety_config: SafetyConfig):
+        """Set safety configuration for all accounts."""
+        self.safety_config = safety_config
+        # Update existing accounts
+        for account in self.accounts.values():
+            account.safety_config = safety_config
         
     async def add_account(self, config: AccountConfig) -> bool:
         """Add and connect a new account."""
@@ -120,8 +183,10 @@ class AccountManager:
         if config.session_name in self.accounts:
             self.logger.warning(f"Account {config.session_name} already exists")
             return False
-            
-        account = TelegramAccount(config)
+        
+        # Use default safety config if none set
+        safety_config = self.safety_config or SafetyConfig()
+        account = TelegramAccount(config, safety_config)
         success = await account.connect()
         
         if success:
