@@ -34,7 +34,7 @@ class TelegramManager:
             config = self.config_manager.load_config()
             
             # Setup logging
-            setup_logging(config.log_enabled, config.log_level)
+            setup_logging(config.log_enabled, config.log_level, config.log_to_file, config.log_dir)
             self.logger.info("Telegram Auto-Messenger initializing...")
             
             # Validate configuration
@@ -56,7 +56,7 @@ class TelegramManager:
             return True
             
         except Exception as e:
-            self.logger.error(f"Failed to initialize: {e}")
+            self.logger.exception(f"Failed to initialize: {e}")
             return False
             
     async def start(self):
@@ -87,7 +87,7 @@ class TelegramManager:
                 await asyncio.sleep(1)
                 
         except Exception as e:
-            self.logger.error(f"Error during execution: {e}")
+            self.logger.exception(f"Error during execution: {e}")
         finally:
             await self.stop()
             
@@ -120,7 +120,7 @@ class TelegramManager:
             self.logger.info("Telegram Auto-Messenger stopped")
             
         except Exception as e:
-            self.logger.error(f"Error during shutdown: {e}")
+            self.logger.exception(f"Error during shutdown: {e}")
             
     def _setup_signal_handlers(self):
         """Setup signal handlers for graceful shutdown."""
@@ -142,7 +142,7 @@ class TelegramManager:
                     new_config = self.config_manager.get_config()
                     
                     # Update logging if changed
-                    setup_logging(new_config.log_enabled, new_config.log_level)
+                    setup_logging(new_config.log_enabled, new_config.log_level, new_config.log_to_file, new_config.log_dir)
                     
                     # Update components
                     await self._update_accounts(new_config)
@@ -155,7 +155,7 @@ class TelegramManager:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                self.logger.error(f"Error in hot reload loop: {e}")
+                self.logger.exception(f"Error in hot reload loop: {e}")
                 
     async def _update_accounts(self, config: AppConfig):
         """Update accounts based on configuration."""
@@ -165,21 +165,21 @@ class TelegramManager:
             
             await self.account_manager.update_accounts(config.accounts)
         except Exception as e:
-            self.logger.error(f"Failed to update accounts: {e}")
+            self.logger.exception(f"Failed to update accounts: {e}")
             
     async def _update_schedules(self, config: AppConfig):
         """Update schedules based on configuration."""
         try:
             self.message_scheduler.update_schedules(config.schedules)
         except Exception as e:
-            self.logger.error(f"Failed to update schedules: {e}")
+            self.logger.exception(f"Failed to update schedules: {e}")
             
     async def _update_monitors(self, config: AppConfig):
         """Update monitors based on configuration."""
         try:
             await self.monitor_manager.update_monitors(config.monitors)
         except Exception as e:
-            self.logger.error(f"Failed to update monitors: {e}")
+            self.logger.exception(f"Failed to update monitors: {e}")
             
     def get_status(self) -> dict:
         """Get overall application status."""

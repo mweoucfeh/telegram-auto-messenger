@@ -46,7 +46,7 @@ class ScheduledMessage:
                 self.logger.error(f"Failed to send scheduled message to {self.config.target}")
                 
         except Exception as e:
-            self.logger.error(f"Error sending scheduled message: {e}")
+            self.logger.exception(f"Error sending scheduled message: {e}")
             
     async def _schedule_deletion(self, account):
         """Schedule message deletion after specified time."""
@@ -56,7 +56,7 @@ class ScheduledMessage:
                 await account.delete_message(self.config.target, self.last_message_id)
                 self.logger.info(f"Scheduled message deleted after {self.config.delete_after}s")
         except Exception as e:
-            self.logger.error(f"Error deleting scheduled message: {e}")
+            self.logger.exception(f"Error deleting scheduled message: {e}")
 
 
 class MessageScheduler:
@@ -112,7 +112,7 @@ class MessageScheduler:
             return True
             
         except Exception as e:
-            self.logger.error(f"Failed to add schedule {config.name}: {e}")
+            self.logger.exception(f"Failed to add schedule {config.name}: {e}")
             return False
             
     def remove_schedule(self, name: str):
@@ -172,7 +172,7 @@ class MessageScheduler:
             self.logger.info(f"Schedule {name} paused")
             return True
         except Exception as e:
-            self.logger.error(f"Failed to pause schedule {name}: {e}")
+            self.logger.exception(f"Failed to pause schedule {name}: {e}")
             return False
             
     def resume_schedule(self, name: str) -> bool:
@@ -186,7 +186,7 @@ class MessageScheduler:
             self.logger.info(f"Schedule {name} resumed")
             return True
         except Exception as e:
-            self.logger.error(f"Failed to resume schedule {name}: {e}")
+            self.logger.exception(f"Failed to resume schedule {name}: {e}")
             return False
             
     async def send_now(self, name: str) -> bool:
