@@ -9,7 +9,7 @@
 ## ✨ 核心特性
 
 - ✅ **无数据库依赖** - 轻量运行，无需数据库
-- ✅ **简单日志控制** - 可控制的打印日志输出
+- ✅ **增强日志系统** - 文件日志记录 + 完整异常追踪，便于调试
 - ✅ **跨平台支持** - 支持 Windows、macOS、Linux
 - ✅ **防封号设计** - 内置延迟和限流机制，参考 tg-signer 安全实践
 - ✅ **专注文字消息** - 简单可靠的文字消息发送
@@ -17,6 +17,7 @@
 - ✅ **定时发送** - 间隔定时向指定频道/群组发送消息
 - ✅ **智能监控回复** - 监控关键词并自动回复
 - ✅ **本地运行** - 完全本地化，无需外部服务
+- ✅ **PyCharm兼容** - 完全兼容 PyCharm 开发环境和调试功能
 
 ## 🔧 技术栈
 
@@ -24,7 +25,7 @@
 - **任务调度**: APScheduler (高性能异步任务调度器)  
 - **配置管理**: YAML (人性化配置文件格式)
 - **命令行**: Click (现代化 CLI 框架)
-- **日志系统**: 简单打印输出（可控制开关）
+- **日志系统**: 增强文件日志（自动轮转 + 异常追踪）
 
 ## 🛡️ 防封号安全措施
 
@@ -57,11 +58,17 @@ telegram-auto-messenger config generate
 ```yaml
 # 应用配置
 app:
-  # 是否启用控制台日志输出
+  # 是否启用日志输出
   log_enabled: true
   
   # 日志级别 (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   log_level: 'INFO'
+  
+  # 是否启用文件日志
+  log_to_file: true
+  
+  # 日志文件目录
+  log_dir: 'logs'
   
   # 防封号安全设置
   safety:
@@ -95,10 +102,10 @@ accounts:
 # 运行程序
 telegram-auto-messenger run
 
-# 静默运行（无日志输出）
+# 静默运行（无控制台日志输出，但仍写入文件）
 telegram-auto-messenger --quiet run
 
-# 详细输出模式
+# 详细输出模式（DEBUG级别）
 telegram-auto-messenger --verbose run
 ```
 
@@ -154,12 +161,33 @@ telegram-auto-messenger/
 │   │   └── manager.py            # 主管理器
 │   ├── config/                   # 配置管理
 │   ├── utils/                    # 工具模块
-│   │   └── logger.py             # 简单日志工具
+│   │   └── logger.py             # 增强日志工具（文件+异常追踪）
 │   └── cli.py                    # 命令行界面
 ├── examples/                     # 配置示例
 ├── demo_simple.py               # 简单使用示例
+├── docs/                        # 文档
+│   └── LOGGING.md              # 增强日志系统使用指南
 └── tests/                       # 测试文件
 ```
+
+## 📋 详细文档
+
+- [**增强日志系统使用指南**](docs/LOGGING.md) - 详细的日志配置和使用说明
+- 配置文件示例: `examples/` 目录
+- API 文档: 查看源代码注释
+
+## 🐛 调试和故障排除
+
+### 日志文件位置
+- 主日志: `logs/telegram_auto_messenger.log`
+- 错误日志: `logs/errors.log` 
+- 日志自动轮转（10MB最大，保留5个备份文件）
+
+### 常见问题
+1. **账号连接失败**: 检查 `errors.log` 获取详细错误信息
+2. **消息发送失败**: 查看主日志文件中的详细异常堆栈
+3. **配置验证错误**: 使用 `telegram-auto-messenger config validate` 验证配置
+4. **PyCharm调试**: 直接在PyCharm中运行，日志会同时显示在控制台和文件中
 
 ## 🔐 安全说明
 
@@ -218,6 +246,13 @@ flake8 src/
 ```
 
 ## 📝 更新日志
+
+### v1.0.1 - 增强日志版本
+- 🆕 **增强日志系统**: 支持文件日志记录，自动轮转管理
+- 🆕 **异常追踪**: 完整的异常堆栈追踪，便于调试和问题定位
+- 🆕 **PyCharm兼容**: 完全兼容PyCharm开发环境
+- 🆕 **分级日志**: 主日志文件 + 专门的错误日志文件
+- 🔧 **配置升级**: 新增 `log_to_file` 和 `log_dir` 配置选项
 
 ### v1.0.0 - 简化版本
 - 移除数据库依赖，实现轻量化运行
