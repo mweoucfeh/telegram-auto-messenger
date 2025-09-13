@@ -40,7 +40,7 @@ def test_config_manager_load():
         # Create test config
         test_config = {
             'app': {
-                'database_path': 'test.db',
+                'log_enabled': True,
                 'log_level': 'DEBUG',
                 'hot_reload': False
             },
@@ -84,7 +84,7 @@ def test_config_manager_load():
         config = manager.load_config()
         
         # Verify app config
-        assert config.database_path == 'test.db'
+        assert config.log_enabled == True
         assert config.log_level == 'DEBUG'
         assert config.hot_reload is False
         
@@ -126,7 +126,7 @@ def test_config_validation():
         # Create invalid config
         invalid_config = {
             'app': {
-                'database_path': 'test.db'
+                'log_enabled': True
             },
             'accounts': [
                 {

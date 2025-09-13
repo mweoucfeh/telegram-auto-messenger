@@ -16,17 +16,22 @@ from .utils.logger import setup_logging
 @click.option('--config', '-c', default='config/config.yml', 
               help='Configuration file path')
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose logging')
+@click.option('--quiet', '-q', is_flag=True, help='Disable logging output')
 @click.pass_context
-def cli(ctx, config, verbose):
+def cli(ctx, config, verbose, quiet):
     """Telegram Auto-Messenger - Multi-account automation tool."""
     ctx.ensure_object(dict)
     ctx.obj['config_path'] = config
     ctx.obj['verbose'] = verbose
+    ctx.obj['quiet'] = quiet
     
-    if verbose:
-        setup_logging('DEBUG')
+    # Setup logging based on flags
+    if quiet:
+        setup_logging(False)
+    elif verbose:
+        setup_logging(True, 'DEBUG')
     else:
-        setup_logging('INFO')
+        setup_logging(True, 'INFO')
 
 
 @cli.command()

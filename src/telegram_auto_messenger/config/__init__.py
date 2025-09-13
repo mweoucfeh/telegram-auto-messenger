@@ -45,15 +45,25 @@ class MonitorConfig:
 
 
 @dataclass
+class SafetyConfig:
+    """Safety configuration to avoid account bans."""
+    min_message_delay: int = 5
+    max_messages_per_hour: int = 20
+    randomize_delays: bool = True
+    max_random_delay: int = 10
+
+
+@dataclass
 class AppConfig:
     """Main application configuration."""
     accounts: List[AccountConfig] = field(default_factory=list)
     schedules: List[ScheduleConfig] = field(default_factory=list)
     monitors: List[MonitorConfig] = field(default_factory=list)
-    database_path: str = "data/telegram_auto_messenger.db"
+    log_enabled: bool = True  # Simple on/off logging control
     log_level: str = "INFO"
     hot_reload: bool = True
     hot_reload_interval: int = 30
+    safety: SafetyConfig = field(default_factory=SafetyConfig)
 
 
 class ConfigManager:
@@ -92,11 +102,17 @@ class ConfigManager:
                 
             # Create main config
             app_data = data.get('app', {})
+            
+            # Parse safety config if present
+            safety_data = app_data.get('safety', {})
+            safety_config = SafetyConfig(**safety_data)
+            
             self.config = AppConfig(
                 accounts=accounts,
                 schedules=schedules, 
                 monitors=monitors,
-                **app_data
+                safety=safety_config,
+                **{k: v for k, v in app_data.items() if k != 'safety'}
             )
             
             self._last_modified = self.config_path.stat().st_mtime
@@ -113,10 +129,16 @@ class ConfigManager:
         
         default_config = {
             'app': {
-                'database_path': 'data/telegram_auto_messenger.db',
+                'log_enabled': True,
                 'log_level': 'INFO',
                 'hot_reload': True,
-                'hot_reload_interval': 30
+                'hot_reload_interval': 30,
+                'safety': {
+                    'min_message_delay': 5,
+                    'max_messages_per_hour': 20,
+                    'randomize_delays': True,
+                    'max_random_delay': 10
+                }
             },
             'accounts': [
                 {

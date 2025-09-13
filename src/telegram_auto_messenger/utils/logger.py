@@ -1,64 +1,76 @@
 """
-Logging utilities for the Telegram Auto-Messenger.
+Simple print-based logging utilities for the Telegram Auto-Messenger.
 """
 
-import logging
-import sys
-from pathlib import Path
+import datetime
 from typing import Optional
-import colorlog
 
 
-def setup_logging(level: str = "INFO", log_file: Optional[str] = None):
-    """Setup logging configuration with colored console output."""
+class SimpleLogger:
+    """Simple logger that prints to console with on/off control."""
     
-    # Create logs directory if logging to file
-    if log_file:
-        log_path = Path(log_file)
-        log_path.parent.mkdir(parents=True, exist_ok=True)
+    def __init__(self, enabled: bool = True, level: str = "INFO"):
+        self.enabled = enabled
+        self.level = level.upper()
+        self._levels = {"DEBUG": 0, "INFO": 1, "WARNING": 2, "ERROR": 3, "CRITICAL": 4}
+        self._current_level = self._levels.get(self.level, 1)
+        
+    def _should_log(self, level: str) -> bool:
+        """Check if message should be logged based on level."""
+        return self.enabled and self._levels.get(level, 0) >= self._current_level
+        
+    def _format_message(self, level: str, message: str, name: str = "") -> str:
+        """Format log message with timestamp."""
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        if name:
+            return f"{timestamp} [{level:8s}] {name}: {message}"
+        return f"{timestamp} [{level:8s}]: {message}"
+        
+    def debug(self, message: str, name: str = ""):
+        """Log debug message."""
+        if self._should_log("DEBUG"):
+            print(self._format_message("DEBUG", message, name))
+            
+    def info(self, message: str, name: str = ""):
+        """Log info message."""
+        if self._should_log("INFO"):
+            print(self._format_message("INFO", message, name))
+            
+    def warning(self, message: str, name: str = ""):
+        """Log warning message."""
+        if self._should_log("WARNING"):
+            print(self._format_message("WARNING", message, name))
+            
+    def error(self, message: str, name: str = ""):
+        """Log error message."""
+        if self._should_log("ERROR"):
+            print(self._format_message("ERROR", message, name))
+            
+    def critical(self, message: str, name: str = ""):
+        """Log critical message."""
+        if self._should_log("CRITICAL"):
+            print(self._format_message("CRITICAL", message, name))
+
+
+# Global logger instance
+_global_logger: Optional[SimpleLogger] = None
+
+
+def setup_logging(enabled: bool = True, level: str = "INFO"):
+    """Setup simple print-based logging."""
+    global _global_logger
+    _global_logger = SimpleLogger(enabled, level)
     
-    # Configure root logger
-    root_logger = logging.getLogger()
-    root_logger.setLevel(getattr(logging, level.upper(), logging.INFO))
-    
-    # Remove existing handlers
-    root_logger.handlers.clear()
-    
-    # Console handler with colors
-    console_handler = colorlog.StreamHandler(sys.stdout)
-    console_formatter = colorlog.ColoredFormatter(
-        '%(log_color)s%(asctime)s [%(levelname)8s] %(name)s: %(message)s%(reset)s',
-        datefmt='%Y-%m-%d %H:%M:%S',
-        log_colors={
-            'DEBUG': 'cyan',
-            'INFO': 'green',
-            'WARNING': 'yellow',
-            'ERROR': 'red',
-            'CRITICAL': 'red,bg_white',
-        }
-    )
-    console_handler.setFormatter(console_formatter)
-    root_logger.addHandler(console_handler)
-    
-    # File handler if specified
-    if log_file:
-        file_handler = logging.FileHandler(log_file, encoding='utf-8')
-        file_formatter = logging.Formatter(
-            '%(asctime)s [%(levelname)8s] %(name)s: %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
-        file_handler.setFormatter(file_formatter)
-        root_logger.addHandler(file_handler)
-    
-    # Reduce telethon logging verbosity
-    logging.getLogger('telethon').setLevel(logging.WARNING)
-    logging.getLogger('apscheduler').setLevel(logging.WARNING)
-    
-    # Log startup message
-    logger = logging.getLogger(__name__)
-    logger.info(f"Logging initialized (level: {level})")
-    if log_file:
-        logger.info(f"Logging to file: {log_file}")
+    if enabled:
+        _global_logger.info(f"Simple logging initialized (level: {level})")
+
+
+def get_logger(name: str = "") -> SimpleLogger:
+    """Get the global logger instance."""
+    global _global_logger
+    if _global_logger is None:
+        setup_logging()
+    return _global_logger
 
 
 class LoggerMixin:
@@ -67,9 +79,4 @@ class LoggerMixin:
     @property
     def logger(self):
         """Get logger for this class."""
-        return logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
-
-
-def get_logger(name: str) -> logging.Logger:
-    """Get a logger with the specified name."""
-    return logging.getLogger(name)
+        return get_logger(f"{self.__class__.__module__}.{self.__class__.__name__}")

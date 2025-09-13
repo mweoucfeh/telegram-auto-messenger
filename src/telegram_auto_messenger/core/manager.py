@@ -3,7 +3,6 @@ Main manager class for the Telegram Auto-Messenger application.
 """
 
 import asyncio
-import logging
 import signal
 from pathlib import Path
 from typing import Optional
@@ -12,8 +11,7 @@ from ..config import ConfigManager, AppConfig
 from .account import AccountManager
 from .scheduler import MessageScheduler
 from .monitor import MonitorManager
-from ..utils.database import DatabaseManager
-from ..utils.logger import setup_logging
+from ..utils.logger import setup_logging, get_logger
 
 
 class TelegramManager:
@@ -24,9 +22,8 @@ class TelegramManager:
         self.account_manager = AccountManager()
         self.message_scheduler = MessageScheduler(self.account_manager)
         self.monitor_manager = MonitorManager(self.account_manager)
-        self.database_manager: Optional[DatabaseManager] = None
         
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger("TelegramManager")
         self._running = False
         self._hot_reload_task: Optional[asyncio.Task] = None
         
@@ -37,12 +34,8 @@ class TelegramManager:
             config = self.config_manager.load_config()
             
             # Setup logging
-            setup_logging(config.log_level)
+            setup_logging(config.log_enabled, config.log_level)
             self.logger.info("Telegram Auto-Messenger initializing...")
-            
-            # Initialize database
-            self.database_manager = DatabaseManager(config.database_path)
-            await self.database_manager.initialize()
             
             # Validate configuration
             errors = self.config_manager.validate_config()
@@ -123,10 +116,6 @@ class TelegramManager:
             
             # Disconnect accounts
             await self.account_manager.disconnect_all()
-            
-            # Close database
-            if self.database_manager:
-                await self.database_manager.close()
                 
             self.logger.info("Telegram Auto-Messenger stopped")
             
@@ -152,6 +141,9 @@ class TelegramManager:
                     self.logger.info("Configuration reloaded, updating components...")
                     new_config = self.config_manager.get_config()
                     
+                    # Update logging if changed
+                    setup_logging(new_config.log_enabled, new_config.log_level)
+                    
                     # Update components
                     await self._update_accounts(new_config)
                     await self._update_schedules(new_config)
@@ -168,6 +160,9 @@ class TelegramManager:
     async def _update_accounts(self, config: AppConfig):
         """Update accounts based on configuration."""
         try:
+            # Set safety config for account manager
+            self.account_manager.set_safety_config(config.safety)
+            
             await self.account_manager.update_accounts(config.accounts)
         except Exception as e:
             self.logger.error(f"Failed to update accounts: {e}")
@@ -197,6 +192,7 @@ class TelegramManager:
             'running': self._running,
             'config_path': str(self.config_manager.config_path),
             'hot_reload_enabled': config.hot_reload,
+            'logging_enabled': config.log_enabled,
             'accounts': {
                 'total_configured': len(config.accounts),
                 'connected': len(connected_accounts),
@@ -204,8 +200,7 @@ class TelegramManager:
             },
             'scheduler': self.message_scheduler.get_scheduler_status(),
             'schedules': self.message_scheduler.get_schedule_status(),
-            'monitors': self.monitor_manager.get_monitor_status(),
-            'database_path': config.database_path
+            'monitors': self.monitor_manager.get_monitor_status()
         }
         
     async def send_test_message(self, target: str, message: str) -> bool:

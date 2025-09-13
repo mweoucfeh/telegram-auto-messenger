@@ -3,7 +3,6 @@ Message monitoring module for smart auto-replies.
 """
 
 import asyncio
-import logging
 import re
 from typing import Dict, List, Set
 from telethon import events
@@ -11,6 +10,7 @@ from telethon.tl.types import Message
 
 from ..config import MonitorConfig
 from .account import AccountManager, TelegramAccount
+from ..utils.logger import get_logger
 
 
 class MessageMonitor:
@@ -19,7 +19,7 @@ class MessageMonitor:
     def __init__(self, config: MonitorConfig, account_manager: AccountManager):
         self.config = config
         self.account_manager = account_manager
-        self.logger = logging.getLogger(f"{__name__}.{config.name}")
+        self.logger = get_logger(f"MessageMonitor.{config.name}")
         self.monitoring_account: Optional[TelegramAccount] = None
         self.is_monitoring = False
         self.processed_messages: Set[int] = set()  # To avoid duplicate processing
@@ -148,7 +148,7 @@ class MonitorManager:
     def __init__(self, account_manager: AccountManager):
         self.account_manager = account_manager
         self.monitors: Dict[str, MessageMonitor] = {}
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger("MonitorManager")
         
     async def add_monitor(self, config: MonitorConfig) -> bool:
         """Add a new message monitor."""
