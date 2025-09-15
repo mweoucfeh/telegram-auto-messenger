@@ -5,7 +5,6 @@ Command-line interface for Telegram Auto-Messenger.
 import asyncio
 import click
 import json
-import yaml
 from pathlib import Path
 
 from .core.manager import TelegramManager
@@ -13,7 +12,7 @@ from .utils.logger import setup_logging
 
 
 @click.group()
-@click.option('--config', '-c', default='config/config.yml', 
+@click.option('--config', '-c', default='config/config.yml',
               help='Configuration file path')
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose logging')
 @click.option('--quiet', '-q', is_flag=True, help='Disable logging output')
@@ -343,7 +342,7 @@ def cultivation_status(ctx):
         if await manager.initialize():
             status = manager.cultivation_manager.get_status()
             
-            click.echo(f"Cultivation Status:")
+            click.echo("Cultivation Status:")
             click.echo(f"  Running: {status['running']}")
             click.echo(f"  Total Sessions: {status['total_sessions']}")
             click.echo(f"  Active Sessions: {status['active_sessions']}")
