@@ -54,11 +54,24 @@ class SafetyConfig:
 
 
 @dataclass
+class CultivationConfig:
+    """Configuration for cultivation bot automation."""
+    enabled: bool = False
+    account_name: str = "account1"  # Which account to use
+    channel: str = "@your_cultivation_channel"  # Channel to send commands to
+    command: str = ".闭关修炼"  # Command to send
+    auto_start: bool = False  # Start automatically when app starts
+    response_timeout: int = 30  # Seconds to wait for bot response
+    retry_on_failure: bool = True  # Retry if bot doesn't respond
+
+
+@dataclass
 class AppConfig:
     """Main application configuration."""
     accounts: List[AccountConfig] = field(default_factory=list)
     schedules: List[ScheduleConfig] = field(default_factory=list)
     monitors: List[MonitorConfig] = field(default_factory=list)
+    cultivation: CultivationConfig = field(default_factory=CultivationConfig)
     log_enabled: bool = True  # Simple on/off logging control
     log_level: str = "INFO"
     log_to_file: bool = True  # Enable/disable file logging
@@ -102,6 +115,10 @@ class ConfigManager:
             for mon_data in data.get('monitors', []):
                 monitors.append(MonitorConfig(**mon_data))
                 
+            # Parse cultivation config if present
+            cultivation_data = data.get('cultivation', {})
+            cultivation_config = CultivationConfig(**cultivation_data)
+                
             # Create main config
             app_data = data.get('app', {})
             
@@ -113,6 +130,7 @@ class ConfigManager:
                 accounts=accounts,
                 schedules=schedules, 
                 monitors=monitors,
+                cultivation=cultivation_config,
                 safety=safety_config,
                 **{k: v for k, v in app_data.items() if k != 'safety'}
             )
@@ -153,6 +171,15 @@ class ConfigManager:
                     'enabled': False
                 }
             ],
+            'cultivation': {
+                'enabled': False,
+                'account_name': 'account1',
+                'channel': '@your_cultivation_channel',
+                'command': '.闭关修炼',
+                'auto_start': False,
+                'response_timeout': 30,
+                'retry_on_failure': True
+            },
             'schedules': [
                 {
                     'name': 'example_schedule',

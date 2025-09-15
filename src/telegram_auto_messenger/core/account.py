@@ -3,9 +3,11 @@ Account management module for handling multiple Telegram accounts.
 """
 
 import asyncio
+import os
 import random
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Dict, List, Optional
 from telethon import TelegramClient
 from telethon.errors import SessionPasswordNeededError, PhoneCodeInvalidError
@@ -32,10 +34,24 @@ class TelegramAccount:
     async def connect(self) -> bool:
         """Connect to Telegram account."""
         try:
-            # Create client with session file
-            session_path = f"sessions/{self.config.session_name}.session"
+            # Ensure sessions directory exists
+            sessions_dir = Path("sessions")
+            sessions_dir.mkdir(exist_ok=True)
+            
+            # Try to load existing session string
+            session_file = sessions_dir / f"{self.config.session_name}.session"
+            session_string = ""
+            
+            if session_file.exists():
+                try:
+                    with open(session_file, 'r', encoding='utf-8') as f:
+                        session_string = f.read().strip()
+                except Exception as e:
+                    self.logger.warning(f"Could not read session file: {e}")
+            
+            # Create client with StringSession (in-memory, no SQLite)
             self.client = TelegramClient(
-                session_path,
+                StringSession(session_string),
                 self.config.api_id,
                 self.config.api_hash
             )
@@ -49,6 +65,16 @@ class TelegramAccount:
             self.is_connected = True
             me = await self.client.get_me()
             self.logger.info(f"Connected as {me.first_name} ({me.phone})")
+            
+            # Save session string for future use
+            try:
+                session_string = self.client.session.save()
+                session_file = Path("sessions") / f"{self.config.session_name}.session"
+                with open(session_file, 'w', encoding='utf-8') as f:
+                    f.write(session_string)
+            except Exception as e:
+                self.logger.warning(f"Could not save session file: {e}")
+            
             return True
             
         except Exception as e:

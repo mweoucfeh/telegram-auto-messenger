@@ -5,7 +5,6 @@ Command-line interface for Telegram Auto-Messenger.
 import asyncio
 import click
 import json
-import yaml
 from pathlib import Path
 
 from .core.manager import TelegramManager
@@ -13,7 +12,7 @@ from .utils.logger import setup_logging
 
 
 @click.group()
-@click.option('--config', '-c', default='config/config.yml', 
+@click.option('--config', '-c', default='config/config.yml',
               help='Configuration file path')
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose logging')
 @click.option('--quiet', '-q', is_flag=True, help='Disable logging output')
@@ -35,8 +34,9 @@ def cli(ctx, config, verbose, quiet):
 
 
 @cli.command()
+@click.option('--quick', '-q', is_flag=True, help='Start with cultivation enabled immediately')
 @click.pass_context
-def run(ctx):
+def run(ctx, quick):
     """Run the Telegram Auto-Messenger."""
     config_path = ctx.obj['config_path']
     
@@ -44,6 +44,10 @@ def run(ctx):
         manager = TelegramManager(config_path)
         
         if await manager.initialize():
+            # If quick start, enable cultivation
+            if quick:
+                await manager.start_cultivation()
+                
             await manager.start()
         else:
             click.echo("Failed to initialize, exiting...")
@@ -242,6 +246,118 @@ def resume_schedule(ctx, schedule_name):
                 click.echo(f"Schedule '{schedule_name}' resumed")
             else:
                 click.echo(f"Failed to resume schedule '{schedule_name}'", err=True)
+        else:
+            click.echo("Failed to initialize", err=True)
+            
+    asyncio.run(main())
+
+
+@cli.group()
+def cultivation():
+    """Cultivation bot management commands."""
+    pass
+
+
+@cultivation.command('start')
+@click.option('--account', '-a', help='Account name to use')
+@click.option('--channel', '-c', help='Channel to send commands to')
+@click.pass_context
+def start_cultivation(ctx, account, channel):
+    """Start cultivation automation."""
+    config_path = ctx.obj['config_path']
+    
+    async def main():
+        manager = TelegramManager(config_path)
+        if await manager.initialize():
+            success = await manager.start_cultivation(account, channel)
+            if success:
+                click.echo("Cultivation started successfully!")
+                # Keep running
+                while True:
+                    await asyncio.sleep(1)
+            else:
+                click.echo("Failed to start cultivation", err=True)
+        else:
+            click.echo("Failed to initialize", err=True)
+            
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        click.echo("\nCultivation stopped.")
+
+
+@cultivation.command('stop')
+@click.option('--account', '-a', help='Account name')
+@click.option('--channel', '-c', help='Channel name')
+@click.pass_context
+def stop_cultivation(ctx, account, channel):
+    """Stop cultivation automation."""
+    config_path = ctx.obj['config_path']
+    
+    async def main():
+        manager = TelegramManager(config_path)
+        if await manager.initialize():
+            success = await manager.stop_cultivation(account, channel)
+            if success:
+                click.echo("Cultivation stopped")
+            else:
+                click.echo("Failed to stop cultivation", err=True)
+        else:
+            click.echo("Failed to initialize", err=True)
+            
+    asyncio.run(main())
+
+
+@cultivation.command('execute')
+@click.option('--account', '-a', help='Account name to use')
+@click.option('--channel', '-c', help='Channel to send command to')
+@click.option('--command', help='Custom command to send (default: .闭关修炼)')
+@click.pass_context
+def execute_cultivation(ctx, account, channel, command):
+    """Execute cultivation command immediately."""
+    config_path = ctx.obj['config_path']
+    
+    async def main():
+        manager = TelegramManager(config_path)
+        if await manager.initialize():
+            success = await manager.execute_cultivation_now(account, channel, command)
+            if success:
+                click.echo("Cultivation command sent successfully!")
+            else:
+                click.echo("Failed to send cultivation command", err=True)
+        else:
+            click.echo("Failed to initialize", err=True)
+            
+    asyncio.run(main())
+
+
+@cultivation.command('status')
+@click.pass_context
+def cultivation_status(ctx):
+    """Show cultivation status."""
+    config_path = ctx.obj['config_path']
+    
+    async def main():
+        manager = TelegramManager(config_path)
+        if await manager.initialize():
+            status = manager.cultivation_manager.get_status()
+            
+            click.echo("Cultivation Status:")
+            click.echo(f"  Running: {status['running']}")
+            click.echo(f"  Total Sessions: {status['total_sessions']}")
+            click.echo(f"  Active Sessions: {status['active_sessions']}")
+            
+            for session in status['sessions']:
+                click.echo(f"\nSession: {session['account']} -> {session['channel']}")
+                click.echo(f"  Active: {session['is_active']}")
+                click.echo(f"  Command: {session['command']}")
+                click.echo(f"  Ready: {session['is_ready']}")
+                click.echo(f"  Success Count: {session['success_count']}")
+                click.echo(f"  Failure Count: {session['failure_count']}")
+                if session['next_attempt']:
+                    click.echo(f"  Next Attempt: {session['next_attempt']}")
+                if session['last_attempt']:
+                    click.echo(f"  Last Attempt: {session['last_attempt']}")
         else:
             click.echo("Failed to initialize", err=True)
             

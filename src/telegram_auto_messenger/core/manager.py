@@ -11,6 +11,7 @@ from ..config import ConfigManager, AppConfig
 from .account import AccountManager
 from .scheduler import MessageScheduler
 from .monitor import MonitorManager
+from .cultivation import CultivationManager
 from ..utils.logger import setup_logging, get_logger
 
 
@@ -22,6 +23,7 @@ class TelegramManager:
         self.account_manager = AccountManager()
         self.message_scheduler = MessageScheduler(self.account_manager)
         self.monitor_manager = MonitorManager(self.account_manager)
+        self.cultivation_manager = CultivationManager(self.account_manager)
         
         self.logger = get_logger("TelegramManager")
         self._running = False
@@ -51,6 +53,7 @@ class TelegramManager:
             # Initialize scheduler and monitors
             await self._update_schedules(config)
             await self._update_monitors(config)
+            await self._update_cultivation(config)
             
             self.logger.info("Telegram Auto-Messenger initialized successfully")
             return True
@@ -72,8 +75,12 @@ class TelegramManager:
             # Start scheduler
             await self.message_scheduler.start()
             
-            # Start hot reload if enabled
+            # Start cultivation monitoring if enabled
             config = self.config_manager.get_config()
+            if config.cultivation.enabled and config.cultivation.auto_start:
+                await self.cultivation_manager.start_monitoring()
+            
+            # Start hot reload if enabled
             if config.hot_reload:
                 self._hot_reload_task = asyncio.create_task(self._hot_reload_loop(config))
                 
@@ -110,6 +117,9 @@ class TelegramManager:
                     
             # Stop monitors
             await self.monitor_manager.stop_all_monitors()
+            
+            # Stop cultivation
+            await self.cultivation_manager.stop_monitoring()
             
             # Stop scheduler
             await self.message_scheduler.stop()
@@ -148,6 +158,7 @@ class TelegramManager:
                     await self._update_accounts(new_config)
                     await self._update_schedules(new_config)
                     await self._update_monitors(new_config)
+                    await self._update_cultivation(new_config)
                     
                     # Update hot reload interval if changed
                     config.hot_reload_interval = new_config.hot_reload_interval
@@ -181,6 +192,30 @@ class TelegramManager:
         except Exception as e:
             self.logger.exception(f"Failed to update monitors: {e}")
             
+    async def _update_cultivation(self, config: AppConfig):
+        """Update cultivation based on configuration."""
+        try:
+            if config.cultivation.enabled:
+                # Add cultivation session if not exists
+                self.cultivation_manager.add_session(
+                    config.cultivation.account_name,
+                    config.cultivation.channel,
+                    config.cultivation.command
+                )
+                
+                # Start session if auto_start is enabled
+                if config.cultivation.auto_start:
+                    await self.cultivation_manager.start_session(
+                        config.cultivation.account_name,
+                        config.cultivation.channel
+                    )
+            else:
+                # Stop all cultivation sessions
+                await self.cultivation_manager.stop_monitoring()
+                
+        except Exception as e:
+            self.logger.exception(f"Failed to update cultivation: {e}")
+            
     def get_status(self) -> dict:
         """Get overall application status."""
         config = self.config_manager.get_config()
@@ -200,7 +235,8 @@ class TelegramManager:
             },
             'scheduler': self.message_scheduler.get_scheduler_status(),
             'schedules': self.message_scheduler.get_schedule_status(),
-            'monitors': self.monitor_manager.get_monitor_status()
+            'monitors': self.monitor_manager.get_monitor_status(),
+            'cultivation': self.cultivation_manager.get_status()
         }
         
     async def send_test_message(self, target: str, message: str) -> bool:
@@ -226,3 +262,39 @@ class TelegramManager:
     async def resume_monitor(self, monitor_name: str) -> bool:
         """Resume a specific monitor."""
         return await self.monitor_manager.resume_monitor(monitor_name)
+    
+    # Cultivation management methods
+    async def start_cultivation(self, account_name: str = None, channel: str = None) -> bool:
+        """Start cultivation session."""
+        config = self.config_manager.get_config()
+        
+        # Use config values if not provided
+        account_name = account_name or config.cultivation.account_name
+        channel = channel or config.cultivation.channel
+        
+        # Add session if it doesn't exist
+        self.cultivation_manager.add_session(account_name, channel, config.cultivation.command)
+        
+        # Start the session
+        success = await self.cultivation_manager.start_session(account_name, channel)
+        if success:
+            await self.cultivation_manager.start_monitoring()
+        return success
+    
+    async def stop_cultivation(self, account_name: str = None, channel: str = None) -> bool:
+        """Stop cultivation session."""
+        if account_name and channel:
+            return await self.cultivation_manager.stop_session(account_name, channel)
+        else:
+            await self.cultivation_manager.stop_monitoring()
+            return True
+    
+    async def execute_cultivation_now(self, account_name: str = None, channel: str = None, command: str = None) -> bool:
+        """Execute cultivation command immediately."""
+        config = self.config_manager.get_config()
+        
+        account_name = account_name or config.cultivation.account_name
+        channel = channel or config.cultivation.channel
+        command = command or config.cultivation.command
+        
+        return await self.cultivation_manager.execute_immediate(account_name, channel, command)
